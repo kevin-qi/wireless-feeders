@@ -19,7 +19,7 @@ bool newData = false;
 void setup() {
 
     Serial.begin(115200); 
-    Serial.println("SimpleRx Starting");
+    Serial.println("FEEDER_HUB_START: "+String(millis())+"|");
     radio.begin();
     radio.setDataRate( RF24_250KBPS );
     radio.openReadingPipe(1, thisSlaveAddress);
@@ -32,8 +32,8 @@ void setup() {
 //=============
 
 void loop() {
-    //getData();
-    //showData();
+    getData();
+    showData();
     //Serial.println("Hello");
     //delay(1000);
 }
@@ -49,8 +49,8 @@ void getData() {
 
 void showData() {
     if (newData == true) {
-        Serial.print("Data received ");
-        Serial.println(dataReceived);
+        //Serial.print("Data received ");
+        Serial.println(dataReceived+String(",")+String(millis()));
         newData = false;
     }
 }

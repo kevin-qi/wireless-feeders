@@ -16,7 +16,8 @@ flush(arduinoObj);
 todayDate = datetime([datetime('today')],'Format','yyMMdd');
 
 fileID = fopen('logs.txt', 'a+');
-fprintf(fileID, "Date: %s\n", todayDate);
+%fprintf(fileID, "Date: %s\n", todayDate);
+fprintf(fileID,"Device,Event,RemoteTimestampMS,HubTimestampMS");
 configureCallback(arduinoObj, "terminator", @readArduinoLogs);
 
 
