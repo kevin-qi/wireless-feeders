@@ -72,42 +72,31 @@ State state_retract(&on_retract_enter, NULL, &on_retract_exit);
 Fsm fsm(&state_reset);
 
 void on_ready_enter() {
- DSerial.print("READY_ENTER:"+String(millis())+"|");
+ DSerial.println("READY_ENTER:"+String(millis())+"|");
  err = "";
 }
 
 void on_ready_exit() {
-  DSerial.print("READY_EXIT:"+String(millis())+"|");
+  DSerial.println("READY_EXIT:"+String(millis())+"|");
 }
 
 void on_retract_enter() {
- DSerial.print("RETRACT_ENTER:"+String(millis())+"|");
+ DSerial.println("RETRACT_ENTER:"+String(millis())+"|");
  digitalWrite(IN1_PIN, LOW);
  digitalWrite(IN2_PIN, HIGH);
 }
 
 void on_retract_exit() {
-  DSerial.print("RETRACT_EXIT:"+String(millis())+"|");
+  DSerial.println("RETRACT_EXIT:"+String(millis())+"|");
   digitalWrite(IN1_PIN, LOW);
   digitalWrite(IN2_PIN, LOW);
 }
 
 void on_rew_enter() {
-  DSerial.print("REW_ENTER:"+String(millis())+"|");
+  DSerial.println("REW_ENTER:"+String(millis())+"|");
   digitalWrite(IN1_PIN, HIGH);
   digitalWrite(IN2_PIN, LOW);
-  radio.stopListening(); //This sets the module as transmitter
-  delay(5);
-  button_stateB = 1;
-  DSerial.println(button_stateB);
-  bool res;
-  res = radio.write(&button_stateB, sizeof(button_stateB));   //Sending the data
-  if(res)
-    DSerial.println("Sent");
-  else
-    DSerial.println("Failed");
-  delay(5);
-  radio.startListening();
+  radioWrite("REW", millis()); // Timestamp of reward
 }
 
 void on_rew_exit() {

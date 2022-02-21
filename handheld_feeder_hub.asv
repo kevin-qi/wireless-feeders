@@ -1,0 +1,51 @@
+clear all
+
+global dataQueue
+dataQueue = {};
+
+arduinoPort = "COM4";
+disp(serialportlist("available"));
+assert(ismember(arduinoPort,serialportlist("available")), "Serial port not detected, please check correct serialport!")
+
+arduino = serialport(arduinoPort, 115200);
+
+configureTerminator(arduino, "CR/LF");
+
+flush(arduino);
+
+arduino.UserData = {};
+
+todayDate = datetime([datetime('today')],'Format','yyMMdd');
+
+fileID = fopen('logs.txt', 'w+');
+fprintf(fileID, "Date: %s\n", todayDate);
+configureCallback(arduino, "terminator", @readArduinoLogs);
+
+
+lineNum = 1;
+while(false)
+    if(length(arduino.UserData.Data) >= lineNum)
+        ascii = arduino.UserData.Data(lineNum);
+        dataStr = append("", char(ascii));
+        disp(dataStr);
+        fprintf(fileID, dataStr);
+        lineNum = lineNum + 1;
+    end
+end
+
+
+function readArduinoLogs(src, ~)
+    % Read the ASCII data from the serialport object.
+    data = readline(src);
+    disp(data)
+    % Convert the string data to numeric type and save it in the UserData
+    % property of the serialport object.
+
+    arduino.UserData{end+1} = char("sdfds");
+    % If 1001 data points have been collected from the Arduino, switch off the
+    % callbacks and plot the data.
+    if(length(src.UserData.Data) >= 5)
+        configureCallback(src, "off");
+        fclose(fileID);
+    end 
+end

@@ -32,8 +32,10 @@ void setup() {
 //=============
 
 void loop() {
-    getData();
-    showData();
+    //getData();
+    //showData();
+    //Serial.println("Hello");
+    //delay(1000);
 }
 
 //==============
