@@ -14,12 +14,13 @@ configureTerminator(arduinoObj, "CR/LF");
 flush(arduinoObj);
 
 todayDate = datetime([datetime('today')],'Format','yyMMdd');
-
+mkdir()
 fileID = fopen('logs.txt', 'a+');
 %fprintf(fileID, "Date: %s\n", todayDate);
-fprintf(fileID,"Device,Event,")
+fprintf(fileID,"Device,Event,RemoteTimestampMS,HubTimestampMS");
 configureCallback(arduinoObj, "terminator", @readArduinoLogs);
 
+write(arduinoObj,'ReadyToLog', 'string');
 
 function readArduinoLogs(src, ~)
     % Read the ASCII data from the serialport object.
@@ -32,6 +33,7 @@ function readArduinoLogs(src, ~)
     src.UserData.Count = src.UserData.Count + 1;
     src.UserData.Data = append(src.UserData.Data, data, '\n');
     src.UserData.dataQueue{end+1} = data;
+    disp(data);
     % Convert the string data to numeric type and save it in the UserData
     % property of the serialport object.
 

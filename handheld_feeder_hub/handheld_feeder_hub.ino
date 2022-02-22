@@ -13,13 +13,13 @@ RF24 radio(CE_PIN, CSN_PIN);
 
 char dataReceived[15]; // this must match dataToSend in the TX (15 bytes)
 bool newData = false;
+bool loggingReady = false;
 
 //===========
 
 void setup() {
-
-    Serial.begin(115200); 
-    Serial.println("FEEDER_HUB_START: "+String(millis())+"|");
+    Serial.begin(115200);
+    Serial.println("9,HUBSTART,,"+String(millis()));
     radio.begin();
     radio.setDataRate( RF24_250KBPS );
     radio.openReadingPipe(1, thisSlaveAddress);
@@ -27,6 +27,7 @@ void setup() {
     radio.setPayloadSize(sizeof(dataReceived));
     radio.setPALevel(RF24_PA_LOW);
     radio.startListening();
+    
 }
 
 //=============
@@ -34,8 +35,6 @@ void setup() {
 void loop() {
     getData();
     showData();
-    //Serial.println("Hello");
-    //delay(1000);
 }
 
 //==============
