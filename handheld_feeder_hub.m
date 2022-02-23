@@ -26,7 +26,7 @@ function readArduinoLogs(src, ~)
 
     fileID = fopen(fname + ".txt", 'a+');
     fprintf(fileID, "%s\n",data);
-    fclose(fileID);///////
+    fclose(fileID);
 
     src.UserData.Count = src.UserData.Count + 1;
     src.UserData.Data = append(src.UserData.Data, data, '\n');

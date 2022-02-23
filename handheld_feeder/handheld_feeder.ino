@@ -50,7 +50,7 @@ const int FEEDER_ID = 0;
  *  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 const byte rx_addresses[][12] = {"HandFeeder0", "HandFeeder1"};
-const byte tx_address[10] = {'F','e','e','d','e','r','H','u','b'}; 
+const byte tx_address[][10] = {'F','e','e','d','e','r','H','u','b'};
 
 boolean button_stateA = 0;
 boolean button_stateB = 0;
@@ -138,7 +138,7 @@ void setup() {
  radio.setPALevel(RF24_PA_LOW);
  radio.setDataRate( RF24_250KBPS );
  radio.setPayloadSize(sizeof(payload));
- radio.setRetries(3,5); // delay, count
+ radio.setRetries(5+3*FEEDER_ID,3); // delay, count
  radio.stopListening(); // Set as TX;
  //radio.printDetails();
  
@@ -260,7 +260,7 @@ ISR(TIMER1_COMPA_vect){ //timer1 interrupt 0.3333Hz toggles pin 13 (LED) (3 seco
 bool radioWrite(String three_char_token, long ms){
   bool res = 0;
   if(three_char_token.length() == 3){
-    sprintf(payload,"%d:%s:%08ld",FEEDER_ID,three_char_token,ms);
+    sprintf(payload,"%d,%s,%08ld",FEEDER_ID,three_char_token,ms);
     res = radio.write(&payload, sizeof(payload));
   }
   return res;
