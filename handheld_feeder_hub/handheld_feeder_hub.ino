@@ -24,7 +24,9 @@ volatile long ttl_available;
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("9,HUB,,"+String(millis()));
+    char timestampChar[8];
+    sprintf(timestampChar, "%08ld",millis());
+    Serial.println("9,HUB,,"+String(timestampChar));
 
     attachInterrupt(digitalPinToInterrupt(TTL_PIN), ttlEvent, RISING);
    

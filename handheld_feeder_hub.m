@@ -23,7 +23,8 @@ configureCallback(arduinoObj, "terminator", @readArduinoLogs);
 function readArduinoLogs(src, ~)
     % Read the ASCII data from the serialport object.
     data = readline(src);
-
+    todayDate = datetime([datetime('today')],'Format','yyMMdd');
+    fname = sprintf("%s_feeder_logs", todayDate);
     fileID = fopen(fname + ".txt", 'a+');
     fprintf(fileID, "%s\n",data);
     fclose(fileID);
