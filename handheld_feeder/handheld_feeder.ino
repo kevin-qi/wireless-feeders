@@ -4,12 +4,11 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
-#define DEBUG true  //set to true for debug output, false for no debug output
+#define DEBUG false  //set to true for debug output, false for no debug output
 #define DSerial if(DEBUG)Serial
 
-#define isNotConnected_PIN 13 // HIGH if not connected, LOW if connected
+#define isNotConnected_PIN 5 // HIGH if not connected, LOW if connected
 #define CONTROL_INPUT_PIN 3
-#define RETRACT_INPUT_PIN 5
 
 #define CE 9
 #define MISO 12
@@ -50,14 +49,14 @@ const int FEEDER_ID = 0;
  *  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 const byte rx_addresses[][12] = {"HandFeeder0", "HandFeeder1"};
-const byte tx_address[][10] = {'F','e','e','d','e','r','H','u','b'};
+const byte tx_address[10] = {'F','e','e','d','e','r','H','u','b'}; 
 
 boolean button_stateA = 0;
 boolean button_stateB = 0;
 long timestamp = 12321;
 char payload[15];
 
-bool isConnected = 0;
+bool isConnected = false;
 
 // renamed
 Bounce bounce_control_pin = Bounce();
@@ -72,8 +71,10 @@ State state_retract(&on_retract_enter, NULL, &on_retract_exit);
 Fsm fsm(&state_reset);
 
 void on_ready_enter() {
- DSerial.println("READY_ENTER:"+String(millis())+"|");
- err = "";
+   long enter_time = millis();
+   DSerial.println("READY_ENTER:"+String(enter_time)+"|");
+   err = "";
+   //radioWrite("RDY", enter_time); // Timestamp of reward
 }
 
 void on_ready_exit() {
@@ -93,24 +94,26 @@ void on_retract_exit() {
 }
 
 void on_rew_enter() {
-  DSerial.println("REW_ENTER:"+String(millis())+"|");
+  long enter_time = millis();
+  DSerial.println("REW_ENTER:"+String(enter_time)+"|");
   digitalWrite(IN1_PIN, HIGH);
   digitalWrite(IN2_PIN, LOW);
-  radioWrite("REW", millis()); // Timestamp of reward
+  
 }
 
 void on_rew_exit() {
   DSerial.print("REW_EXIT:"+String(millis())+"|");
   digitalWrite(IN1_PIN, LOW);
   digitalWrite(IN2_PIN, LOW);
+  long exit_time = millis();
+  radioWrite("REW", exit_time); // Timestamp of reward
 }
 
 void on_reset_enter() {
-  DSerial.print("RESET:"+String(millis())+"|"+"ERR:"+err+"\n");
+  DSerial.print("RESET:"+String(millis())+"|");
 }
 
 void on_reset_exit() {
-  init_time = millis();
   radioWrite("BEG", init_time); // Timestamp of beginning of local 3 sec ttls
 }
 
@@ -121,7 +124,6 @@ void on_rew_to_ready_timed(){
 
 void setup() {
  Serial.begin(115200);
- Serial.setTimeout(1);
 
  //pinMode(RESET_STATE_PIN, OUTPUT);
  pinMode(IN1_PIN, OUTPUT);
@@ -138,7 +140,7 @@ void setup() {
  radio.setPALevel(RF24_PA_LOW);
  radio.setDataRate( RF24_250KBPS );
  radio.setPayloadSize(sizeof(payload));
- radio.setRetries(5+3*FEEDER_ID,3); // delay, count
+ radio.setRetries(3,5); // delay, count
  radio.stopListening(); // Set as TX;
  //radio.printDetails();
  
@@ -169,49 +171,45 @@ void setup() {
             
 
  fsm.add_timed_transition(&state_rew, &state_ready,
-                          100,
+                          150,
                           &on_rew_to_ready_timed);
- 
+
  while(!isConnected){
-  fsm.run_machine();
-  unsigned long start_timer = micros();                    // start the timer
-  isConnected = radioWrite("RDY", millis());
-  unsigned long end_timer = micros();                      // end the timer
-  if(isConnected){
-    fsm.trigger(EVENT_RESET_READY);
-    DSerial.print(F("Transmission successful! "));          // payload was delivered
-    DSerial.print(F("Time to transmit = "));
-    DSerial.print(end_timer - start_timer);                 // print the timer result
-    DSerial.print(F(" us. Sent: "));
-    DSerial.println(payload);                               // print payload sent
-
-    // Following code block sets up 3 second TTL outputs
-    cli();//stop interrupts
-    //set timer1 interrupt at 0.33333Hz (1/3 Hz)
-    TCCR1A = 0;// set entire TCCR1A register to 0
-    TCCR1B = 0;// same for TCCR1B
-    TCNT1  = 0;//initialize counter value to 0
-    // set compare match register for 1/3hz increments
-    OCR1A = 46874;// = (16*10^6) / ((1/3)*1024) - 1 (must be <65536)
-    // turn on CTC mode
-    TCCR1B |= (1 << WGM12);
-    // Set CS10 and CS12 bits for 1024 prescaler
-    TCCR1B |= (1 << CS12) | (1 << CS10);  
-    // enable timer compare interrupt
-    TIMSK1 |= (1 << OCIE1A);
-
-    digitalWrite(isNotConnected_PIN, LOW); // Turn LED OFF to indicate connected to radio
-    
-  } else {
-    DSerial.println(F("Transmission failed or timed out")); // payload was not delivered
-    delay(1000);
+    isConnected = radioWrite("CON", millis());
+    if(!isConnected){
+      DSerial.println(F("Transmission failed or timed out")); // payload was not delivered
+      delay(1000);
+    }
   }
- }
+
+  DSerial.println("Connected!");
+  // Following code block sets up 3 second TTL outputs
+  cli();//stop interrupts
+  //set timer1 interrupt at 0.33333Hz (1/3 Hz)
+  TCCR1A = 0;// set entire TCCR1A register to 0
+  TCCR1B = 0;// same for TCCR1B
+  TCNT1  = 0;//initialize counter value to 0
+  // set compare match register for 1/3hz increments
+  OCR1A = 46874;// = (16*10^6) / ((1/3)*1024) - 1 (must be <65536)
+  // turn on CTC mode
+  TCCR1B |= (1 << WGM12);
+  // Set CS10 and CS12 bits for 1024 prescaler
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  // enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);
+  sei(); //start interupts
+  init_time = millis();
+  fsm.add_timed_transition(&state_reset, &state_ready,
+                          1500,
+                          NULL);
+  digitalWrite(isNotConnected_PIN, LOW); // Turn LED OFF to indicate connected to radio
+ 
 }
 
 void loop() {
- if(isConnected){ // Only run FSM if radio has been established.
-   fsm.run_machine();
+    fsm.run_machine();
+    
+   
    if(ttl_available){ // Time to send TTL
     radioWrite("TTL", cur_ttl_time);
     ttl_available = false;
@@ -221,6 +219,7 @@ void loop() {
    bounce_retract_pin.update();
    
    if(bounce_control_pin.changed()){
+     Serial.println("SDFS");
      val_control_input = digitalRead(CONTROL_INPUT_PIN);
      
      if(val_control_input == LOW){ // Button is pressed
@@ -238,7 +237,7 @@ void loop() {
    if(digitalRead(CONTROL_INPUT_PIN) == HIGH){
     fsm.trigger(EVENT_RETRACT_RESET);
    }
- }
+ 
  
 /*
  if(Serial.available()){
@@ -259,9 +258,10 @@ ISR(TIMER1_COMPA_vect){ //timer1 interrupt 0.3333Hz toggles pin 13 (LED) (3 seco
 
 bool radioWrite(String three_char_token, long ms){
   bool res = 0;
-  if(three_char_token.length() == 3){
-    sprintf(payload,"%d,%s,%08ld",FEEDER_ID,three_char_token,ms);
-    res = radio.write(&payload, sizeof(payload));
-  }
+  char token[4];
+  three_char_token.toCharArray(token, sizeof(token));
+  //DSerial.println(token);
+  sprintf(payload,"%d,%c%c%c,%08ld",FEEDER_ID,token[0],token[1],token[2],ms);
+  res = radio.write(&payload, sizeof(payload));
   return res;
 }
